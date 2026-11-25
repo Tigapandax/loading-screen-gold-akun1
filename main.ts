@@ -1,19 +1,24 @@
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+// Contract (competition.yaml, program/v1): the sealed scorer reads the tip
+// from /output/entry.txt only — printing to stdout is not enough. This
+// program validates the single line in one-line.txt (1-200 characters) and
+// writes it to entry.txt, so the entry is Valid 1 and reaches the judge.
 const MAX_CHARS = 200;
 
 const raw = readFileSync(new URL("./one-line.txt", import.meta.url), "utf8");
 const line = raw.replace(/\n$/, "");
 
 const failures: string[] = [];
-if (line.length === 0) failures.push("empty line");
+if ([...line].length === 0) failures.push("empty line");
 if ([...line].length > MAX_CHARS) failures.push(`too long: ${[...line].length}/${MAX_CHARS} characters`);
 if (line !== line.trim()) failures.push("leading or trailing whitespace");
 if (line.includes("\r")) failures.push("carriage return found");
 if (line.includes("\n")) failures.push("more than one line");
 if (/\s{2,}/.test(line)) failures.push("double space inside the line");
 if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(line)) failures.push("control character inside the line");
+if (!/[A-Za-z]/.test(line)) failures.push("a tip needs at least one letter");
 const quotes = (line.match(/"/g) || []).length;
 if (quotes % 2 !== 0) failures.push("unbalanced double quotes");
 if (!/\s/.test(line)) failures.push("a tip needs more than one word");
